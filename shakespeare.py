@@ -6,8 +6,6 @@ import numpy as np
 import os
 import time
 
-tf.enable_eager_execution()
-
 ### Fetch text
 path_to_file = tf.keras.utils.get_file('shakespeare.txt', 'https://storage.googleapis.com/download.tensorflow.org/data/shakespeare.txt')
 
@@ -85,3 +83,30 @@ checkpoint_callback=tf.keras.callbacks.ModelCheckpoint(
 EPOCHS=10
 history = model.fit(dataset, epochs=EPOCHS, callbacks=[checkpoint_callback])
 
+### Generate Text
+tf.train.latest_checkpoint(checkpoint_dir)
+model = build_model(vocab_size, embedding_dim, rnn_units, batch_size=1)
+model.load_weights(tf.train.latest_checkpoint(checkpoint_dir))
+model.build(tf.TensorShape([1, None]))
+model.summary()
+
+def generate_text(model, start_string):
+    len_gen = 1000
+    input_eval = [char2idx[s] for s in start_string]
+    input_eval = tf.expand_dims(input_eval, 0)
+
+    text = []
+
+    temp = 1.0
+
+    model.reset_states()
+    for i in range(len_gen):
+        predictions = model(input_eval)
+        predictions = tf.squeeze(predictions, 0)
+        predictions = predictions / temp 
+        predicted_id = tf.random.categorical(predictions, num_samples=1)[-1, 0].numpy()
+        input_eval = tf.expand_dims([predicted_id], 0)
+        text.append(idx2char[predicted_id])
+    return start_string + ''.join(text)
+
+print(generate_text(model, start_string=u"ROMEO: "))
