@@ -80,8 +80,8 @@ checkpoint_callback=tf.keras.callbacks.ModelCheckpoint(
     filepath=checkpoint_prefix,
     save_weights_only=True)
 
-EPOCHS=10
-history = model.fit(dataset, epochs=EPOCHS, callbacks=[checkpoint_callback])
+EPOCHS = 30 
+# history = model.fit(dataset, epochs=EPOCHS, callbacks=[checkpoint_callback])
 
 ### Generate Text
 tf.train.latest_checkpoint(checkpoint_dir)
@@ -91,7 +91,7 @@ model.build(tf.TensorShape([1, None]))
 model.summary()
 
 def generate_text(model, start_string):
-    len_gen = 1000
+    len_gen = 25000
     input_eval = [char2idx[s] for s in start_string]
     input_eval = tf.expand_dims(input_eval, 0)
 
@@ -101,6 +101,8 @@ def generate_text(model, start_string):
 
     model.reset_states()
     for i in range(len_gen):
+        if (i % 5000 == 0):
+            print("{0}/{1}".format(i, len_gen))
         predictions = model(input_eval)
         predictions = tf.squeeze(predictions, 0)
         predictions = predictions / temp 
@@ -109,4 +111,10 @@ def generate_text(model, start_string):
         text.append(idx2char[predicted_id])
     return start_string + ''.join(text)
 
-print(generate_text(model, start_string=u"ROMEO: "))
+START_WORDS = [u"ROMEO: ", u"PUCK: ", u"MACBETH: ", u"HAMLET: ", u"IAGO: ", u"PROSPERO: ", u"LEAR: ", u"EDMUND: ", u"BENEDICK: "]
+for word in START_WORDS:
+    filename = "outputs/{0}_out.txt".format(word[:-2])
+    print(word, filename)
+    out_text = open(filename, "w+")
+    out_text.write(generate_text(model, start_string = word))
+    out_text.close()
